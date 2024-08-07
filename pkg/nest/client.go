@@ -93,7 +93,7 @@ func (c *Client) AddTrack(media *core.Media, codec *core.Codec, track *core.Rece
 }
 
 func (c *Client) Start() error {
-	c.api.StartExtendStreamTimer()
+	c.api.StartExtendStreamTimer(c.conn)
 	return c.conn.Start()
 }
 

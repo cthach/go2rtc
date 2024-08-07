@@ -9,6 +9,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/AlexxIT/go2rtc/pkg/webrtc"
+
+	"github.com/rs/zerolog/log"
 )
 
 type API struct {
@@ -272,11 +276,21 @@ type Device struct {
 	//} `json:"parentRelations"`
 }
 
-func (a *API) StartExtendStreamTimer() {
+func (a *API) StartExtendStreamTimer(conn *webrtc.Conn) {
+	log.Info().Msg("[nest] start extend timer")
+
 	// Calculate the duration until 30 seconds before the stream expires
 	duration := time.Until(a.StreamExpiresAt.Add(-30 * time.Second))
 	a.extendTimer = time.AfterFunc(duration, func() {
 		if err := a.ExtendStream(); err != nil {
+			log.Error().Err(err).Msg("[nest] extend stream")
+
+			// When extending a stream fails, the stream will be left open despite having expired so it must be
+			// closed so that a new stream can be eventually established
+			if err := conn.Close(); err != nil {
+				log.Error().Err(err).Msg("[nest] close conn")
+			}
+
 			return
 		}
 		duration = time.Until(a.StreamExpiresAt.Add(-30 * time.Second))
